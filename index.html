@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GUEST LIST</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Brutalist Graphic Design (john.hartnup.uk/poster-prompts) × PIXELvienna schedule layout:
+   Space Mono uppercase display, Space Grotesk bold entries, time-badge style status chips (#e8585a on black), raw blocks, no radius. */
+:root{color-scheme:dark;--bg:#0c0c0d;--cream:#f2efe6;--ink:#000;--acc:#e8585a;--grey:#3a3a3d}
+body{margin:0;background:var(--bg);color:var(--cream);font-family:"Space Grotesk",system-ui,sans-serif;font-weight:700}
+header{padding:2rem 1.25rem 1rem;border-bottom:6px solid var(--cream)}
+h1{font-family:"Space Mono",ui-monospace,monospace;font-size:clamp(2.5rem,9vw,5.5rem);line-height:.9;margin:0;text-transform:uppercase;letter-spacing:-.03em;word-break:break-word}
+h1 .dot{color:var(--acc)}
+.sub{font-family:"Space Mono",monospace;font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;color:#a9a9ad;margin-top:.75rem}
+html,body{height:100%}
+body{display:grid;grid-template-rows:auto 1fr auto}
+main{max-width:1000px;width:100%;margin:0 auto;padding:1.25rem;display:flex;flex-direction:column;min-height:0}
+#list{overflow-y:auto;flex:1;scrollbar-color:var(--acc) var(--bg)}
+.toolbar{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.5rem}
+input,button,select,textarea{font-family:"Space Mono",monospace;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:.8rem;background:var(--ink);color:var(--cream);border:2px solid var(--cream);border-radius:0;padding:.6rem .8rem}
+input{border-color:var(--grey)}input:focus{outline:none;border-color:var(--acc)}
+button{cursor:pointer}button:hover{background:var(--acc);color:var(--ink);border-color:var(--acc)}
+.edit-only{display:none}body.editing .edit-only{display:inline-block}
+.entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.25rem 1rem;align-items:baseline;border-bottom:2px solid var(--grey);padding:1rem .25rem}
+.entry:hover{background:#131315}
+.entry h2{margin:0;font-family:"Space Grotesk",sans-serif;font-size:clamp(1.15rem,3.5vw,1.7rem);text-transform:uppercase;line-height:1.05;word-break:break-word}
+.entry .info{grid-column:1;color:#a9a9ad;font-size:.9rem;margin:0}
+.entry .actions{display:none;gap:.4rem}body.editing .entry .actions{display:flex}
+.badge{background:var(--ink);border:2px solid var(--acc);color:var(--acc);padding:.35rem .6rem;white-space:nowrap;font-family:"Space Mono",monospace;font-weight:700;font-size:.75rem;text-transform:uppercase}
+.badge.confirmed{background:var(--acc);color:var(--ink)}
+.badge.declined{border-color:var(--grey);color:var(--grey);text-decoration:line-through}
+.badge.maybe{border-style:dashed}
+.count{font-family:"Space Mono",monospace;font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;color:#a9a9ad;margin-bottom:.5rem}
+dialog{background:var(--bg);color:var(--cream);border:4px solid var(--cream);border-radius:0;width:min(420px,92%)}
+dialog::backdrop{background:#000c}dialog form{display:grid;gap:.6rem;padding:.5rem}
+dialog label{font-family:"Space Mono",monospace;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:#a9a9ad;display:block;margin-bottom:-.4rem}
+#toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--acc);color:var(--ink);padding:.7rem 1.2rem;font-family:"Space Mono",monospace;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:.8rem;display:none}
+footer{border-top:6px solid var(--cream);margin-top:2rem;padding:1rem 1.25rem;font-family:"Space Mono",monospace;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:#a9a9ad}
+</style>
+</head>
+<body>
+<header>
+<h1>Guest<span class="dot">·</span>List</h1>
+<p class="sub" id="syncNote">View only — contacts hidden · log in to edit</p>
+</header>
+<main>
+<div class="toolbar">
+<input id="search" type="search" placeholder="Search…" oninput="render()">
+<button class="edit-only" onclick="addRow()">+ Add guest</button>
+<button class="edit-only" onclick="pushGithub()" title="Commit this list to GitHub — everyone sees it once Pages rebuilds (~1 min)">↑ Sync online</button>
+<button id="loginBtn" onclick="doLogin()">Log in</button>
+<button id="logoutBtn" class="edit-only" onclick="logout()">Log out</button>
+</div>
+<p class="count"><span id="count"></span></p>
+<div id="list"></div>
+</main>
+<dialog id="dlg"><form method="dialog" onsubmit="saveRow(event)">
+<label>Name</label><input id="fName" required>
+<label>Contact</label><input id="fContact">
+<label>Status</label><select id="fStatus"><option>pending</option><option>confirmed</option><option>declined</option><option>maybe</option></select>
+<label>Notes</label><textarea id="fNotes" rows="3"></textarea>
+<div style="display:flex;gap:.5rem;justify-content:flex-end"><button value="cancel">Cancel</button><button>Save</button></div>
+</form></dialog>
+<div id="toast"></div>
+<footer>Pixel · Vienna — Guest List</footer>
+<script>
+// Login gate: SHA-256 of the password only — the password itself never appears in this file, the repo, or on the live site.
+const PW_HASH="930552873fbe0e5b9066fe64c08c29b7fd2b80430260120fc98da0843e3ba02c";
+// GitHub live sync: the API token lives ONLY in this browser's localStorage, never in page source or repo.
+const GH_REPO="ScivizLabVienna/pixelviennaguestlist", GH_FILE="index.html";
+const IDLE_MS=10*60*1000; // edit mode auto-logs out after 10 min of no activity
+let data=[ // <-- seeded example rows, kept in this exact block: "Sync online" rewrites just this array inside a fresh copy of the page
+{name:"Anna Müller",contact:"anna@example.com",status:"confirmed",notes:"+1 guest"},
+{name:"Ben Kovač",contact:"ben@example.com",status:"declined",notes:""},
+{name:"Clara Weber",contact:"+43 660 1234567",status:"maybe",notes:"vegetarian"},
+{name:"David Chen",contact:"david@example.com",status:"pending",notes:"waiting for reply"}
+];
+let edit=sessionStorage.getItem("gl_edit")==="1", cur=-1, dirty=false;
+const $=id=>document.getElementById(id), esc=s=>String(s??"" ).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function doLogin(){const pw=prompt("Password:");if(pw===null)return;const h=[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(pw)))].map(x=>x.toString(16).padStart(2,"0")).join("");if(h===PW_HASH){edit=true;sessionStorage.setItem("gl_edit","1");resetIdle();render();}else alert("Wrong password");}
+function logout(){edit=false;sessionStorage.removeItem("gl_edit");clearTimeout(idleT);render();toast("Logged out");}
+let idleT;function resetIdle(){clearTimeout(idleT);if(edit)idleT=setTimeout(logout,IDLE_MS);} // lazy: idle timer only, no countdown UI
+["click","keydown","touchstart"].forEach(e=>addEventListener(e,resetIdle,{passive:true}));
+function rowHtml(g,i){return `<div class="entry"><h2>${esc(g.name)}</h2><span class="badge ${esc(g.status)}">${esc(g.status)}</span><p class="info">${[edit?g.contact:"",g.notes].filter(Boolean).map(esc).join(" — ")||"—"}</p><span class="actions"><button onclick="openRow(${i})">Edit</button><button onclick="delRow(${i})">&#10005;</button></span></div>`;}
+function render(){const q=$("search").value.toLowerCase();// search only what is visible in the current mode, so viewers can't find people by hidden contact data
+const vis=g=>(edit?g.name+" "+g.contact:g.name)+" "+g.notes;const rows=data.map((g,i)=>({g,i})).filter(({g})=>!q||vis(g).toLowerCase().includes(q));$("list").innerHTML=rows.map(({g,i})=>rowHtml(g,i)).join("")||`<p class="count">No guests${q?" match":" yet"}.</p>`;$("count").textContent=rows.length+" of "+data.length+" guests · "+data.filter(g=>g.status==="confirmed").length+" confirmed";document.body.classList.toggle("editing",edit);}
+function openRow(i){cur=i;const g=data[i]||{name:"",contact:"",status:"pending",notes:""};$("fName").value=g.name;$("fContact").value=g.contact;$("fStatus").value=g.status;$("fNotes").value=g.notes;$("dlg").showModal();}
+function addRow(){openRow(-1);}
+function saveRow(e){if($("dlg").submitter&&$("dlg").submitter.value==="cancel")return;const g={name:$("fName").value.trim(),contact:$("fContact").value.trim(),status:$("fStatus").value,notes:$("fNotes").value.trim()};if(!g.name)return;cur<0?data.push(g):data[cur]=g;dirty=true;render();}
+function delRow(i){if(confirm("Delete "+data[i].name+"?")){data.splice(i,1);dirty=true;render();}}
+function currentHtml(){// rebuild full page source with the current data array embedded between its markers
+const arr="let data="+JSON.stringify(data).replace(/\},/g,"},\n")+"\n];";
+return "<!DOCTYPE html>\n"+document.documentElement.outerHTML.replace(/let data=\[[\s\S]*?\n\];/,arr);}
+async function pushGithub(){// commit this page's current state to GitHub via Contents API; Pages then serves it to everyone. shortcut: one writer at a time (last sync wins), add sha-conflict check if two people ever edit simultaneously.
+if(!dirty&&!confirm("No changes since load — push anyway?"))return;
+let tok=localStorage.getItem("gl_token")||prompt("GitHub token (fine-grained, Contents:write on this repo; kept only in this browser):");
+if(!tok)return;tok=tok.trim();localStorage.setItem("gl_token",tok);
+const auth={"Authorization":"Bearer "+tok,"Accept":"application/vnd.github+json","Content-Type":"application/json"};
+try{
+const meta=await(await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}?ref=main`,{headers:auth})).json();
+if(meta.message&&!meta.content){toast("Token rejected: "+meta.message);return;}
+const r=await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`,{method:"PUT",headers:auth,body:JSON.stringify({message:"update guest list from page",content:btoa(unescape(encodeURIComponent(currentHtml()))),branch:"main",sha:meta&&meta.content?meta.sha||meta.content.sha:undefined})});
+const out=await r.json().catch(()=>({}));
+if(!r.ok){toast("Push failed: "+(out.message||r.status));return;}
+dirty=false;resetIdle();toast("Pushed — live for everyone in ~1 minute");
+}catch(e){toast("Push failed: "+e.message);}}
+function saveHtml(){const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob([currentHtml()],{type:"text/html"})),download:"guest-list.html"});a.click();toast("Downloaded copy.");}
+addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue="";}}); // guard: unsynced edits die with the tab
+function toast(m){$("toast").textContent=m;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",3000);}
+addEventListener("DOMContentLoaded",async()=>{
+try{// online: the GitHub copy is the single source of truth for viewers and editors alike
+const r=await fetch(location.href,{cache:"no-store"});if(r.ok){const t=await r.text();const m=t.match(/let data=\[[\s\S]*?\n\];/);if(m)(0,eval)(m[0].replace(/^let data/,"data"));} // our own file's literal array, not foreign input
+}catch(e){$("syncNote").textContent="Offline copy — no network";}
+render();if(edit)resetIdle();});
+</script>
+</body>
+</html>
