@@ -44,13 +44,13 @@ dialog::backdrop{background:#000c}dialog form{display:grid;gap:.6rem;padding:.5r
 dialog label,.panel label{font-family:"Space Mono",monospace;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:#a9a9ad;display:block;margin-bottom:.35rem}
 /* full-screen event gate + guest join card */
 #gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:1.25rem;text-align:center}
-#gate h1{font-size:clamp(2rem,8vw,4rem)}
+#gate h1{font-size:clamp(2rem,8vw,4rem);line-height:1.05}
 #gate form{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center}
 .panel{border:4px solid var(--cream);padding:1.5rem;display:grid;gap:.7rem;margin-bottom:1.5rem;background:#131315}
 .panel.shake,.shakeit{animation:shk .3s}
 @keyframes shk{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 .errline{font-family:"Space Mono",monospace;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--acc);min-height:1em;margin:0}
-#toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--acc);color:var(--ink);padding:.7rem 1.2rem;font-family:"Space Mono",monospace;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:.8rem;display:none}
+#toast{position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom));left:50%;z-index:51;transform:translateX(-50%);background:var(--acc);color:var(--ink);padding:.95rem 1.5rem;font-family:"Space Mono",monospace;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:1.05rem;display:none}
 footer{border-top:6px solid var(--cream);margin-top:2rem;padding:1rem 1.25rem;font-family:"Space Mono",monospace;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:#a9a9ad}
 @media print{  /* the "PDF" export = browser print-to-PDF (organiser mode only): white, chrome hidden */
  header,.toolbar,.actions,dialog,#toast,footer,.count,.landing-only,#gate{display:none!important}
@@ -62,7 +62,7 @@ footer{border-top:6px solid var(--cream);margin-top:2rem;padding:1rem 1.25rem;fo
 </head>
 <body>
 <div id="gate">
-<h1>Pixel<span class="dot">·</span>Vienna</h1>
+<h1>Guest<span class="dot">·</span>List<br><span style="font-size:.42em;letter-spacing:.18em">for Pixel · Vienna</span></h1>
 <p class="sub">Password required to enter</p>
 <form onsubmit="return gateEnter(event)"><input id="gatePw" type="password" placeholder="Password" autocomplete="current-password" autofocus><button>Enter</button></form>
 <p class="errline" id="gateErr"></p>
@@ -118,16 +118,20 @@ const GATE_HASH="b782a8247486a05c77f589f5d219281be10523bfa79fd64bbb73a8bc5de7170
 const PW_HASH="930552873fbe0e5b9066fe64c08c29b7fd2b80430260120fc98da0843e3ba02c";   // organiser password hash
 const DATA_API="https://scivizlabvienna-guestlist-data.hf.space/list"; const ADD_API="https://scivizlabvienna-guestlist-data.hf.space/add"; // free tier sleeps when idle: first request can take ~10 s, saves retry automatically
 const IDLE_MS=10*60*1000; // organiser mode auto-logs out after 10 min of no activity (returns to the guest landing; site stays entered)
-let data=[], last=null; let edit=sessionStorage.getItem("gl_edit")==="1", cur=-1, dirty=false;
+// storage throws on strict mobile privacy (iOS block-all-cookies) — guard every access or join/boot silently die
+function ssG(k){try{return sessionStorage.getItem(k)}catch(e){return null}}
+function ssS(k,v){try{sessionStorage.setItem(k,v)}catch(e){}}
+function ssD(k){try{sessionStorage.removeItem(k)}catch(e){}}
+let data=[], last=null; let edit=ssG("gl_edit")==="1", cur=-1, dirty=false;
 const $=id=>document.getElementById(id), esc=s=>String(s??"" ).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 async function sha(t){return[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
 // ---- gate: the whole site sits behind the event password (client-side; source-visible by design — it's also printed on the flyers)
-async function gateEnter(e){e.preventDefault();const h=await sha($("gatePw").value);if(h===GATE_HASH){sessionStorage.setItem("gl_gate","1");$("gatePw").value="";boot();}else{$("gateErr").textContent="Wrong password";$("gate").querySelector("form").classList.add("shakeit");setTimeout(()=>$("gate").querySelector("form").classList.remove("shakeit"),400);}return false;}
+async function gateEnter(e){e.preventDefault();const h=await sha($("gatePw").value);if(h===GATE_HASH){ssS("gl_gate","1");$("gatePw").value="";boot();}else{$("gateErr").textContent="Wrong password";$("gate").querySelector("form").classList.add("shakeit");setTimeout(()=>$("gate").querySelector("form").classList.remove("shakeit"),400);}return false;}
 function gateClose(){$("gate").style.display="none";}
 // ---- organiser login (second, secret password) — inline inputs, no browser prompts needed anywhere
 function showLogin(){$("loginPanel").style.display="block";$("orgPw").focus();}
-async function orgLogin(e){e.preventDefault();const h=await sha($("orgPw").value);if(h===PW_HASH){edit=true;sessionStorage.setItem("gl_edit","1");$("orgPw").value="";$("loginPanel").style.display="none";enterAdmin();}else{$("orgErr").textContent="Wrong organiser password";$("loginPanel").classList.add("shakeit");setTimeout(()=>$("loginPanel").classList.remove("shakeit"),400);}return false;}
-function logout(){edit=false;sessionStorage.removeItem("gl_edit");clearTimeout(idleT);data=[];$("list").innerHTML="";$("count").textContent="\u2014 guests \u00b7 \u2014 confirmed";document.body.classList.remove("admin");gateClose();render();toast("Logged out");}
+async function orgLogin(e){e.preventDefault();const h=await sha($("orgPw").value);if(h===PW_HASH){edit=true;ssS("gl_edit","1");$("orgPw").value="";$("loginPanel").style.display="none";enterAdmin();}else{$("orgErr").textContent="Wrong organiser password";$("loginPanel").classList.add("shakeit");setTimeout(()=>$("loginPanel").classList.remove("shakeit"),400);}return false;}
+function logout(){edit=false;ssD("gl_edit");clearTimeout(idleT);data=[];$("list").innerHTML="";$("count").textContent="\u2014 guests \u00b7 \u2014 confirmed";document.body.classList.remove("admin");gateClose();render();toast("Logged out");}
 let idleT;function resetIdle(){clearTimeout(idleT);if(edit)idleT=setTimeout(logout,IDLE_MS);} // lazy: idle timer only, no countdown UI
 ["click","keydown","touchstart"].forEach(e=>addEventListener(e,resetIdle,{passive:true}));
 // ---- admin data: pull + full-save sync (only organisers ever fetch the list; the server refuses it without the organiser key)
@@ -137,9 +141,9 @@ async function pullRemote(){if(!edit||dirty||document.querySelector("dialog[open
 try{const r=await fetch(DATA_API+"?key="+PW_HASH,{cache:"no-store"});if(!r.ok)throw 0;data=(await r.json()).map(g=>({name:g.name,status:g.status,notes:g.notes}));render();}catch(e){$("syncNote").textContent="\u26a0 server unreachable \u2014 showing last copy";}}
 // ---- guest self-add: appends ONE pending row via /add; cannot rewrite the list (that needs the organiser key)
 async function join(e){e.preventDefault();const name=$("joinName").value.trim(),notes=$("joinNotes").value.trim();if(!name)return false;$("joinBtn").disabled=true;$("joinErr").textContent="";
-try{const r=await fetch(ADD_API,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({key:GATE_HASH,name,notes})});if(!r.ok)throw(await r.json().catch(()=>0)).error||r.status;sessionStorage.setItem("gl_joined",name);renderJoinDone(name);toast("You're on the list \u2713");}
+try{const r=await fetch(ADD_API,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({key:GATE_HASH,name,notes})});if(!r.ok)throw(await r.json().catch(()=>0)).error||r.status;ssS("gl_joined",name);renderJoinDone(name);toast("You're on the list \u2713");}
 catch(err){$("joinErr").textContent="Save failed: "+err;$("joinBtn").disabled=false;}return false;}
-function renderJoinDone(name){const p=$("joinPanel");p.innerHTML='<p class="sub" style="margin:0">Thanks <span style="color:var(--acc)">'+esc(name)+'</span> — you\u2019re on the list as pending.</p><button style="justify-self:start;margin-top:.6rem" onclick="sessionStorage.removeItem(&quot;gl_joined&quot;);boot()">+ Add someone else</button>';p.style.display="block";}
+function renderJoinDone(name){const p=$("joinPanel");p.innerHTML='<p class="sub" style="margin:0">Thanks <span style="color:var(--acc)">'+esc(name)+'</span> — you\u2019re on the list as pending.</p><button style="justify-self:start;margin-top:.6rem" onclick="ssD(&quot;gl_joined&quot;);boot()">+ Add someone else</button>';p.style.display="block";}
 // ---- downloads (organiser-only UI): text formats carry name/status/notes; "PDF" = browser print. Search filters this admin list only — the landing has none.
 function cols(g){return[g.name,g.status,g.notes];} function Hdr(){return["Name","Status","Notes"];}
 function dl(name,mime,text){const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob([text],{type:mime})),download:name});a.click();toast("Downloaded "+name);}
@@ -148,7 +152,7 @@ function txt(){dl("guests.txt","text/plain",[Hdr(),...data.map(g=>cols(g))].map(
 function md(){const p=a=>"| "+a.map(x=>String(x).replace(/\|/g,"\\|")).join(" | ")+" |";dl("guests.md","text/markdown",[p(Hdr()),"|---".repeat(3)+"|",...data.map(g=>p(cols(g)))].join("\r\n"));}
 // ---- admin UI (render() is the single truth: body.admin class flips toolbar/list/count on, landing blocks off)
 function rowHtml(g,i){return `<div class="entry"><h2>${esc(g.name)}</h2><span class="badge ${esc(g.status)}">${esc(g.status)}</span><p class="info">${esc(g.notes)||"\u2014"}</p><span class="actions"><button onclick="openRow(${i})">Edit</button><button onclick="delRow(${i})">&#10005;</button></span></div>`;}
-function render(){document.body.classList.toggle("admin",edit);$("syncNote").style.display=edit?"":"none";$("countWrap").style.display=edit?"block":"none";$("joinPanel").style.display=edit?"none":(sessionStorage.getItem("gl_gate")==="1"||getComputedStyle($("gate")).display==="none"?"block":"none");if(!edit)return;const q=$("search")?$("search").value.toLowerCase():"";
+function render(){document.body.classList.toggle("admin",edit);$("syncNote").style.display=edit?"":"none";$("countWrap").style.display=edit?"block":"none";$("joinPanel").style.display=edit?"none":(ssG("gl_gate")==="1"||getComputedStyle($("gate")).display==="none"?"block":"none");if(!edit)return;const q=$("search")?$("search").value.toLowerCase():"";
 const rows=data.map((g,i)=>({g,i})).filter(({g})=>!q||(g.name+" "+g.notes).toLowerCase().includes(q));$("list").innerHTML=rows.map(({g,i})=>rowHtml(g,i)).join("")||`<p class="count">No guests${q?" match":" yet"}.</p>`;$("count").textContent=rows.length+" of "+data.length+" guests \u00b7 "+data.filter(g=>g.status==="confirmed").length+" confirmed";}
 function enterAdmin(){gateClose();document.body.classList.add("admin");pullRemote();render();resetIdle();$("syncNote").textContent="Organiser mode \u2014 loading\u2026";}
 function openRow(i){cur=i;const g=data[i]||{name:"",status:"pending",notes:""};$("fName").value=g.name;$("fStatus").value=g.status;$("fNotes").value=g.notes;$("dlg").showModal();}
@@ -159,12 +163,12 @@ function undo(){if(!last)return;data=last;last=null;$("undoBtn").style.display="
 addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue="";}}); // guard: unsaved organiser edits die with the tab
 function toast(m){$("toast").textContent=m;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",3000);}
 // ---- boot state machine: locked (gate) -> landing (guest join, no list/search/downloads) -> admin (full list + search + downloads). One .landing-only container holds join+login so boot() can flip it with display.
-function boot(){const gated=sessionStorage.getItem("gl_gate")==="1";edit=sessionStorage.getItem("gl_edit")==="1"&&gated; // hard rule: edit implies gate
+function boot(){const gated=ssG("gl_gate")==="1";edit=ssG("gl_edit")==="1"&&gated; // hard rule: edit implies gate
 document.body.classList.remove("admin");$("gate").style.display=gated?"none":"flex";$("gateErr").textContent="";$("joinErr").textContent="";
 if(!gated)return;gateClose();
 document.querySelectorAll(".landing-only").forEach(el=>el.style.display="");  // restore CSS defaults (renderJoinDone rewrites joinPanel, so reset it below when not joined)
 $("loginPanel").style.display="none"; // after the restore loop: login panel opens only via showLogin()
-const joined=sessionStorage.getItem("gl_joined");
+const joined=ssG("gl_joined");
 if(joined&&!edit){renderJoinDone(joined);}else{$("joinPanel").innerHTML=JOIN_FORM_HTML;$("joinPanel").style.display="block";}
 if(edit)enterAdmin();}
 const JOIN_FORM_HTML='<form onsubmit="return join(event)"><label>Name</label><input id="joinName" required maxlength="80" placeholder="Your name"><label>Notes (optional)</label><textarea id="joinNotes" rows="3" maxlength="500" placeholder="Anything the organisers should know"></textarea><button id="joinBtn">Count me in</button><p class="errline" id="joinErr"></p></form><p class="sub" style="margin-top:.3rem">You\'ll be added as <span style="color:var(--acc)">pending</span> — the organiser confirms.</p>';
