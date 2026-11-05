@@ -122,7 +122,7 @@ function gateClose(){$("gate").style.display="none";}
 // ---- organiser login (second, secret password) — inline inputs, no browser prompts needed anywhere
 function showLogin(){$("loginPanel").style.display="block";$("orgPw").focus();}
 async function orgLogin(e){e.preventDefault();const h=await sha($("orgPw").value);if(h===PW_HASH){edit=true;sessionStorage.setItem("gl_edit","1");$("orgPw").value="";$("loginPanel").style.display="none";enterAdmin();}else{$("orgErr").textContent="Wrong organiser password";$("loginPanel").classList.add("shakeit");setTimeout(()=>$("loginPanel").classList.remove("shakeit"),400);}return false;}
-function logout(){edit=false;sessionStorage.removeItem("gl_edit");clearTimeout(idleT);document.body.classList.remove("admin");gateClose();render();toast("Logged out");}
+function logout(){edit=false;sessionStorage.removeItem("gl_edit");clearTimeout(idleT);data=[];$("list").innerHTML="";$("count").textContent="\u2014 guests \u00b7 \u2014 confirmed";document.body.classList.remove("admin");gateClose();render();toast("Logged out");}
 let idleT;function resetIdle(){clearTimeout(idleT);if(edit)idleT=setTimeout(logout,IDLE_MS);} // lazy: idle timer only, no countdown UI
 ["click","keydown","touchstart"].forEach(e=>addEventListener(e,resetIdle,{passive:true}));
 // ---- admin data: pull + full-save sync (only organisers ever fetch the list; the server refuses it without the organiser key)
@@ -143,7 +143,7 @@ function txt(){dl("guests.txt","text/plain",[Hdr(),...data.map(g=>cols(g))].map(
 function md(){const p=a=>"| "+a.map(x=>String(x).replace(/\|/g,"\\|")).join(" | ")+" |";dl("guests.md","text/markdown",[p(Hdr()),"|---".repeat(3)+"|",...data.map(g=>p(cols(g)))].join("\r\n"));}
 // ---- admin UI (render() is the single truth: body.admin class flips toolbar/list/count on, landing blocks off)
 function rowHtml(g,i){return `<div class="entry"><h2>${esc(g.name)}</h2><span class="badge ${esc(g.status)}">${esc(g.status)}</span><p class="info">${esc(g.notes)||"\u2014"}</p><span class="actions"><button onclick="openRow(${i})">Edit</button><button onclick="delRow(${i})">&#10005;</button></span></div>`;}
-function render(){document.body.classList.toggle("admin",edit);$("syncNote").style.display=edit?"":"none";$("countWrap").style.display=edit?"block":"none";if(!edit)return;const q=$("search")?$("search").value.toLowerCase():"";
+function render(){document.body.classList.toggle("admin",edit);$("syncNote").style.display=edit?"":"none";$("countWrap").style.display=edit?"block":"none";$("joinPanel").style.display=edit?"none":(sessionStorage.getItem("gl_gate")==="1"||getComputedStyle($("gate")).display==="none"?"block":"none");if(!edit)return;const q=$("search")?$("search").value.toLowerCase():"";
 const rows=data.map((g,i)=>({g,i})).filter(({g})=>!q||(g.name+" "+g.notes).toLowerCase().includes(q));$("list").innerHTML=rows.map(({g,i})=>rowHtml(g,i)).join("")||`<p class="count">No guests${q?" match":" yet"}.</p>`;$("count").textContent=rows.length+" of "+data.length+" guests \u00b7 "+data.filter(g=>g.status==="confirmed").length+" confirmed";}
 function enterAdmin(){gateClose();document.body.classList.add("admin");pullRemote();render();resetIdle();$("syncNote").textContent="Organiser mode \u2014 loading\u2026";}
 function openRow(i){cur=i;const g=data[i]||{name:"",status:"pending",notes:""};$("fName").value=g.name;$("fStatus").value=g.status;$("fNotes").value=g.notes;$("dlg").showModal();}
