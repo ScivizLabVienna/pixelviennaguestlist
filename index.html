@@ -90,7 +90,7 @@ let idleT;function resetIdle(){clearTimeout(idleT);if(edit)idleT=setTimeout(logo
 ["click","keydown","touchstart"].forEach(e=>addEventListener(e,resetIdle,{passive:true}));
 // ---- auto-sync: every edit debounces into a POST; failures retry every 20 s and the tab guard stops you losing data meanwhile. shortcut: last save wins — if two people edit at once, the later save overwrites; upgrade with per-item ids+timestamps if that ever matters.
 let st;function scheduleSave(){clearTimeout(st);dirty=true;st=setTimeout(saveNow,1200);}
-async function saveNow(){try{const r=await fetch(DATA_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});if(!r.ok)throw 0;dirty=false;$("syncNote").textContent="Live sync — saved "+new Date().toLocaleTimeString();}catch(e){$("syncNote").textContent="⚠ not saved yet — retrying";st=setTimeout(saveNow,20000);}}
+async function saveNow(){try{const r=await fetch(DATA_API,{method:"POST",headers:{"Content-Type":"application/json","X-Guest-Key":PW_HASH},body:JSON.stringify(data)});if(!r.ok)throw 0;dirty=false;$("syncNote").textContent="Live sync — saved "+new Date().toLocaleTimeString();}catch(e){$("syncNote").textContent="⚠ not saved yet — retrying";st=setTimeout(saveNow,20000);}}
 async function pullRemote(){if(dirty||document.querySelector("dialog[open]"))return; // don't yank the list mid-save or mid-edit-form
 try{const r=await fetch(DATA_API,{cache:"no-store"});if(!r.ok)throw 0;data=await r.json();render();}catch(e){$("syncNote").textContent="Offline copy — server unreachable";}}
 // ---- downloads (edit mode only, since they expose contacts)
