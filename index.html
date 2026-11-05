@@ -50,7 +50,7 @@ dialog label,.panel label{font-family:"Space Mono",monospace;font-size:.7rem;let
 .panel.shake,.shakeit{animation:shk .3s}
 @keyframes shk{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 .errline{font-family:"Space Mono",monospace;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--acc);min-height:1em;margin:0}
-#toast{position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom));left:50%;z-index:51;transform:translateX(-50%);background:var(--acc);color:var(--ink);padding:.95rem 1.5rem;font-family:"Space Mono",monospace;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:1.05rem;display:none}
+#toast{position:fixed;top:50%;left:50%;z-index:51;transform:translate(-50%,-50%);background:var(--acc);color:var(--ink);padding:.95rem 1.5rem;font-family:"Space Mono",monospace;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:1.05rem;display:none}
 footer{border-top:6px solid var(--cream);margin-top:2rem;padding:1rem 1.25rem;font-family:"Space Mono",monospace;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:#a9a9ad}
 @media print{  /* the "PDF" export = browser print-to-PDF (organiser mode only): white, chrome hidden */
  header,.toolbar,.actions,dialog,#toast,footer,.count,.landing-only,#gate{display:none!important}
@@ -167,7 +167,7 @@ addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue="
 function toast(m){$("toast").textContent=m;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",3000);}
 // ---- boot state machine: locked (gate) -> landing (guest join, no list/search/downloads) -> admin (full list + search + downloads). One .landing-only container holds join+login so boot() can flip it with display.
 function boot(){const gated=ssG("gl_gate")==="1";edit=ssG("gl_edit")==="1"&&gated; // hard rule: edit implies gate
-document.body.classList.remove("admin");$("gate").style.display=gated?"none":"flex";$("gateErr").textContent="";$("joinErr").textContent="";
+document.body.classList.remove("admin");$("gate").style.display=gated?"none":"flex";$("gateErr").textContent=""; // no joinErr touch here: renderJoinDone may have removed it (boot rebuilds the form below)
 if(!gated)return;gateClose();
 document.querySelectorAll(".landing-only").forEach(el=>el.style.display="");  // restore CSS defaults (renderJoinDone rewrites joinPanel, so reset it below when not joined)
 $("loginPanel").style.display="none"; // after the restore loop: login panel opens only via showLogin()
