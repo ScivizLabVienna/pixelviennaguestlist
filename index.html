@@ -7,8 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <style>
-/* Brutalist Graphic Design (john.hartnup.uk/poster-prompts) × PIXELvienna schedule layout:
-   Space Mono uppercase display, Space Grotesk bold entries, time-badge style status chips (#e8585a on black), raw blocks, no radius. */
+/* Brutalist Graphic Design × PIXELvienna schedule layout: Space Mono uppercase display, Space Grotesk bold entries, status chips (#e8585a on black), raw blocks, no radius. */
 :root{color-scheme:dark;--bg:#0c0c0d;--cream:#f2efe6;--ink:#000;--acc:#e8585a;--grey:#3a3a3d}
 body{margin:0;background:var(--bg);color:var(--cream);font-family:"Space Grotesk",system-ui,sans-serif;font-weight:700}
 header{padding:2rem 1.25rem 1rem;border-bottom:6px solid var(--cream)}
@@ -19,16 +18,17 @@ html,body{height:100%}
 body{display:grid;grid-template-rows:auto 1fr auto}
 main{max-width:1000px;width:100%;margin:0 auto;padding:1.25rem;display:flex;flex-direction:column;min-height:0}
 #list{overflow-y:auto;flex:1;scrollbar-color:var(--acc) var(--bg)}
-.toolbar{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.toolbar{display:none;gap:.6rem;flex-wrap:wrap;margin-bottom:1.5rem}
+body.admin .toolbar{display:flex}
+.landing-only{display:block}body.admin .landing-only{display:none}
 input,button,select,textarea{font-family:"Space Mono",monospace;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:.8rem;background:var(--ink);color:var(--cream);border:2px solid var(--cream);border-radius:0;padding:.6rem .8rem}
 input{border-color:var(--grey)}input:focus{outline:none;border-color:var(--acc)}
 button{cursor:pointer}button:hover{background:var(--acc);color:var(--ink);border-color:var(--acc)}
-.edit-only{display:none}body.editing .edit-only{display:inline-block}
 .entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.25rem 1rem;align-items:baseline;border-bottom:2px solid var(--grey);padding:1rem .25rem}
 .entry:hover{background:#131315}
 .entry h2{margin:0;font-family:"Space Grotesk",sans-serif;font-size:clamp(1.15rem,3.5vw,1.7rem);text-transform:uppercase;line-height:1.05;word-break:break-word}
 .entry .info{grid-column:1;color:#a9a9ad;font-size:.9rem;margin:0}
-.entry .actions{display:none;gap:.4rem}body.editing .entry .actions{display:flex}
+.entry .actions{display:flex;gap:.4rem}
 .badge{background:var(--ink);border:2px solid var(--acc);color:var(--acc);padding:.35rem .6rem;white-space:nowrap;font-family:"Space Mono",monospace;font-weight:700;font-size:.75rem;text-transform:uppercase}
 .badge.confirmed{background:var(--acc);color:var(--ink)}
 .badge.declined{border-color:var(--grey);color:var(--grey);text-decoration:line-through}
@@ -36,81 +36,134 @@ button{cursor:pointer}button:hover{background:var(--acc);color:var(--ink);border
 .count{font-family:"Space Mono",monospace;font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;color:#a9a9ad;margin-bottom:.5rem}
 dialog{background:var(--bg);color:var(--cream);border:4px solid var(--cream);border-radius:0;width:min(420px,92%)}
 dialog::backdrop{background:#000c}dialog form{display:grid;gap:.6rem;padding:.5rem}
-dialog label{font-family:"Space Mono",monospace;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:#a9a9ad;display:block;margin-bottom:-.4rem}
+dialog label,.panel label{font-family:"Space Mono",monospace;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:#a9a9ad;display:block;margin-bottom:-.4rem}
+/* full-screen event gate + guest join card */
+#gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:1.25rem;text-align:center}
+#gate h1{font-size:clamp(2rem,8vw,4rem)}
+#gate form{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center}
+.panel{border:4px solid var(--cream);padding:1.5rem;display:grid;gap:.7rem;margin-bottom:1.5rem;background:#131315}
+.panel.shake,.shakeit{animation:shk .3s}
+@keyframes shk{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.errline{font-family:"Space Mono",monospace;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--acc);min-height:1em;margin:0}
 #toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--acc);color:var(--ink);padding:.7rem 1.2rem;font-family:"Space Mono",monospace;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:.8rem;display:none}
 footer{border-top:6px solid var(--cream);margin-top:2rem;padding:1rem 1.25rem;font-family:"Space Mono",monospace;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:#a9a9ad}
-@media print{  /* the "PDF" export = browser print-to-PDF: white, contacts visible, chrome hidden */
- header,.toolbar,.actions,dialog,#toast,footer,.count{display:none!important}
+@media print{  /* the "PDF" export = browser print-to-PDF (organiser mode only): white, chrome hidden */
+ header,.toolbar,.actions,dialog,#toast,footer,.count,.landing-only,#gate{display:none!important}
  body{background:#fff!important;color:#000!important;height:auto;display:block}
- .entry{border-color:#999}h2{color:#000}.info{color:#333}body.editing .info{display:block;grid-column:1/-1}
+ .entry{border-color:#999}h2{color:#000}.info{color:#333}
  .badge{color:#000;border-color:#000;background:#fff}.badge.confirmed{background:#ddd}
  #list{overflow:visible;height:auto}}
 </style>
 </head>
 <body>
+<div id="gate">
+<h1>Pixel<span class="dot">·</span>Vienna</h1>
+<p class="sub">Password required to enter</p>
+<form onsubmit="return gateEnter(event)"><input id="gatePw" type="password" placeholder="Password" autocomplete="current-password" autofocus><button>Enter</button></form>
+<p class="errline" id="gateErr"></p>
+</div>
 <header>
 <h1>Guest<span class="dot">·</span>List</h1>
-<p class="sub" id="syncNote">Live sync — view only, contacts hidden · log in to edit</p>
+<p class="sub" id="syncNote">Pixel · Vienna — guest entry open</p>
 </header>
 <main>
+<div class="panel landing-only" id="joinPanel">
+<form onsubmit="return join(event)">
+<label>Name</label><input id="joinName" required maxlength="80" placeholder="Your name">
+<label>Notes (optional)</label><textarea id="joinNotes" rows="3" maxlength="500" placeholder="Anything the organisers should know"></textarea>
+<button id="joinBtn">Count me in</button>
+<p class="errline" id="joinErr"></p>
+</form>
+<p class="sub" style="margin-top:.3rem">You'll be added as <span style="color:var(--acc)">pending</span> — the organiser confirms.</p>
+</div>
+<div class="landing-only" style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.5rem">
+<button onclick="showLogin()">Organiser log-in</button>
+</div>
+<div class="panel landing-only" id="loginPanel" style="display:none">
+<form onsubmit="return orgLogin(event)">
+<label>Organiser password</label><input id="orgPw" type="password" autocomplete="current-password">
+<div style="display:flex;gap:.5rem"><button>Log in</button><button type="button" value="cancel" onclick="$('loginPanel').style.display='none'">Cancel</button></div>
+<p class="errline" id="orgErr"></p>
+</form>
+</div>
 <div class="toolbar">
 <input id="search" type="search" placeholder="Search…" oninput="render()">
-<button class="edit-only" onclick="addRow()">+ Add guest</button>
-<button onclick="csv()">Excel ↓</button>
+<button onclick="addRow()">+ Add guest</button>
+<button onclick="csv()" title="Excel/CSV">Excel ↓</button>
 <button onclick="md()">Markdown ↓</button>
 <button onclick="txt()">Text ↓</button>
-<button onclick="print()" title="Save as PDF via the browser print dialog (contacts only when logged in)">PDF ↓</button>
-<button id="loginBtn" onclick="doLogin()">Log in</button>
-<button id="logoutBtn" class="edit-only" onclick="logout()">Log out</button>
+<button onclick="print()" title="Save as PDF via the browser print dialog">PDF ↓</button>
+<button onclick="undo()" id="undoBtn" style="display:none">Undo ↩</button>
+<button id="logoutBtn" onclick="logout()">Log out</button>
 </div>
-<p class="count"><span id="count"></span></p>
+<p class="count" id="countWrap" style="display:none"><span id="count"></span></p>
 <div id="list"></div>
 </main>
 <dialog id="dlg"><form method="dialog" onsubmit="saveRow(event)">
-<label>Name</label><input id="fName" required>
-<label>Contact</label><input id="fContact">
+<label>Name</label><input id="fName" required maxlength="80">
 <label>Status</label><select id="fStatus"><option>pending</option><option>confirmed</option><option>declined</option><option>maybe</option></select>
-<label>Notes</label><textarea id="fNotes" rows="3"></textarea>
+<label>Notes</label><textarea id="fNotes" rows="3" maxlength="500"></textarea>
 <div style="display:flex;gap:.5rem;justify-content:flex-end"><button value="cancel">Cancel</button><button>Save</button></div>
 </form></dialog>
 <div id="toast"></div>
 <footer>Pixel · Vienna — Guest List</footer>
 <script>
-// Login gate: SHA-256 of the password only — the password itself never appears in this file, the repo, or on the live site.
-const PW_HASH="930552873fbe0e5b9066fe64c08c29b7fd2b80430260120fc98da0843e3ba02c";
-// Data lives on a tiny HF Space (server-side GitHub token stays server-side → no client tokens, no pasting).
-const DATA_API="https://scivizlabvienna-guestlist-data.hf.space/list"; // free tier sleeps when idle: first request can take ~10 s, later saves retry automatically
-const IDLE_MS=10*60*1000; // edit mode auto-logs out after 10 min of no activity
-let data=[]; // served live from DATA_API; no guest data in this file at all (GitHub history stays clean, viewers can't view-source contacts)
-let edit=sessionStorage.getItem("gl_edit")==="1", cur=-1, dirty=false;
+// v2 access model: event password ("pixelpixelpixel") gates entry + allows self-add; organiser password unlocks view/edit/download of the whole list.
+const GATE_HASH="b782a8247486a05c77f589f5d219281be10523bfa79fd64bbb73a8bc5de71705"; // sha256("pixelpixelpixel") — the event password, public by design (it also rides on QR flyers)
+const PW_HASH="930552873fbe0e5b9066fe64c08c29b7fd2b80430260120fc98da0843e3ba02c";   // organiser password hash
+const DATA_API="https://scivizlabvienna-guestlist-data.hf.space/list"; const ADD_API="https://scivizlabvienna-guestlist-data.hf.space/add"; // free tier sleeps when idle: first request can take ~10 s, saves retry automatically
+const IDLE_MS=10*60*1000; // organiser mode auto-logs out after 10 min of no activity (returns to the guest landing; site stays entered)
+let data=[], last=null; let edit=sessionStorage.getItem("gl_edit")==="1", cur=-1, dirty=false;
 const $=id=>document.getElementById(id), esc=s=>String(s??"" ).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-async function doLogin(){const pw=prompt("Password:");if(pw===null)return;const h=[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(pw)))].map(x=>x.toString(16).padStart(2,"0")).join("");if(h===PW_HASH){edit=true;sessionStorage.setItem("gl_edit","1");resetIdle();render();}else alert("Wrong password");}
-function logout(){edit=false;sessionStorage.removeItem("gl_edit");clearTimeout(idleT);render();toast("Logged out");}
+async function sha(t){return[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
+// ---- gate: the whole site sits behind the event password (client-side; source-visible by design — it's also printed on the flyers)
+async function gateEnter(e){e.preventDefault();const h=await sha($("gatePw").value);if(h===GATE_HASH){sessionStorage.setItem("gl_gate","1");$("gatePw").value="";boot();}else{$("gateErr").textContent="Wrong password";$("gate").querySelector("form").classList.add("shakeit");setTimeout(()=>$("gate").querySelector("form").classList.remove("shakeit"),400);}return false;}
+function gateClose(){$("gate").style.display="none";}
+// ---- organiser login (second, secret password) — inline inputs, no browser prompts needed anywhere
+function showLogin(){$("loginPanel").style.display="block";$("orgPw").focus();}
+async function orgLogin(e){e.preventDefault();const h=await sha($("orgPw").value);if(h===PW_HASH){edit=true;sessionStorage.setItem("gl_edit","1");$("orgPw").value="";$("loginPanel").style.display="none";enterAdmin();}else{$("orgErr").textContent="Wrong organiser password";$("loginPanel").classList.add("shakeit");setTimeout(()=>$("loginPanel").classList.remove("shakeit"),400);}return false;}
+function logout(){edit=false;sessionStorage.removeItem("gl_edit");clearTimeout(idleT);document.body.classList.remove("admin");gateClose();render();toast("Logged out");}
 let idleT;function resetIdle(){clearTimeout(idleT);if(edit)idleT=setTimeout(logout,IDLE_MS);} // lazy: idle timer only, no countdown UI
 ["click","keydown","touchstart"].forEach(e=>addEventListener(e,resetIdle,{passive:true}));
-// ---- auto-sync: every edit debounces into a POST; failures retry every 20 s and the tab guard stops you losing data meanwhile. shortcut: last save wins — if two people edit at once, the later save overwrites; upgrade with per-item ids+timestamps if that ever matters.
+// ---- admin data: pull + full-save sync (only organisers ever fetch the list; the server refuses it without the organiser key)
 let st;function scheduleSave(){clearTimeout(st);dirty=true;st=setTimeout(saveNow,1200);}
-async function saveNow(){try{const r=await fetch(DATA_API,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({key:PW_HASH,list:data})});if(!r.ok)throw 0;dirty=false;$("syncNote").textContent="Live sync — saved "+new Date().toLocaleTimeString();}catch(e){$("syncNote").textContent="⚠ not saved yet — retrying";st=setTimeout(saveNow,20000);}}
-async function pullRemote(){if(dirty||document.querySelector("dialog[open]"))return; // don't yank the list mid-save or mid-edit-form
-try{const r=await fetch(DATA_API+"?key="+PW_HASH,{cache:"no-store"});if(!r.ok)throw 0;data=await r.json();render();}catch(e){$("syncNote").textContent="Offline copy — server unreachable";}}
-// ---- downloads: open to everyone; viewer exports carry no contact column (mirrors on-screen rule). server GET returns contacts only for ?key= holders.
-function cols(v){return edit?[v.name,v.contact,v.status,v.notes]:[v.name,v.status,v.notes];}
-function Hdr(){return edit?["Name","Contact","Status","Notes"]:["Name","Status","Notes"];}
+async function saveNow(){try{const r=await fetch(DATA_API,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({key:PW_HASH,list:data})});if(!r.ok)throw 0;dirty=false;$("syncNote").textContent="Live sync — saved "+new Date().toLocaleTimeString();}catch(e){$("syncNote").textContent="\u26a0 not saved yet \u2014 retrying";st=setTimeout(saveNow,20000);}}
+async function pullRemote(){if(!edit||dirty||document.querySelector("dialog[open]"))return; // guest sessions never fetch the list
+try{const r=await fetch(DATA_API+"?key="+PW_HASH,{cache:"no-store"});if(!r.ok)throw 0;data=(await r.json()).map(g=>({name:g.name,status:g.status,notes:g.notes}));render();}catch(e){$("syncNote").textContent="\u26a0 server unreachable \u2014 showing last copy";}}
+// ---- guest self-add: appends ONE pending row via /add; cannot rewrite the list (that needs the organiser key)
+async function join(e){e.preventDefault();const name=$("joinName").value.trim(),notes=$("joinNotes").value.trim();if(!name)return false;$("joinBtn").disabled=true;$("joinErr").textContent="";
+try{const r=await fetch(ADD_API,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({key:GATE_HASH,name,notes})});if(!r.ok)throw(await r.json().catch(()=>0)).error||r.status;sessionStorage.setItem("gl_joined",name);renderJoinDone(name);toast("You're on the list \u2713");}
+catch(err){$("joinErr").textContent="Save failed: "+err;$("joinBtn").disabled=false;}return false;}
+function renderJoinDone(name){const p=$("joinPanel");p.innerHTML='<p class="sub" style="margin:0">Thanks <span style="color:var(--acc)">'+esc(name)+'</span> — you\u2019re on the list as pending.</p><button style="justify-self:start;margin-top:.6rem" onclick="sessionStorage.removeItem(&quot;gl_joined&quot;);boot()">+ Add someone else</button>';p.style.display="block";}
+// ---- downloads (organiser-only UI): text formats carry name/status/notes; "PDF" = browser print. Search filters this admin list only — the landing has none.
+function cols(g){return[g.name,g.status,g.notes];} function Hdr(){return["Name","Status","Notes"];}
 function dl(name,mime,text){const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob([text],{type:mime})),download:name});a.click();toast("Downloaded "+name);}
-function csv(){const q=a=>a.map(x=>{const v=String(x);return JSON.stringify(/^[=+\-@\t\r]/.test(v)?"'"+v:v)}).join(",");  /* leading =+-@ renders as an Excel formula; ' prefix stops that */dl("guests.csv","text/csv;charset=utf-8","\ufeff"+[q(Hdr()),...data.map(v=>q(cols(v)))].join("\r\n"));}
-function txt(){dl("guests.txt","text/plain",[Hdr(),...data.map(v=>cols(v))].map(a=>a.join("\t")).join("\r\n"));}
-function md(){const p=a=>"| "+a.map(x=>String(x).replace(/\|/g,"\\|")).join(" | ")+" |";dl("guests.md","text/markdown",[p(Hdr()),"|---".repeat(Hdr().length)+"|",...data.map(v=>p(cols(v)))].join("\r\n"));}
-// ---- UI
-function rowHtml(g,i){return `<div class="entry"><h2>${esc(g.name)}</h2><span class="badge ${esc(g.status)}">${esc(g.status)}</span><p class="info">${[edit?g.contact:"",g.notes].filter(Boolean).map(esc).join(" — ")||"—"}</p><span class="actions"><button onclick="openRow(${i})">Edit</button><button onclick="delRow(${i})">&#10005;</button></span></div>`;}
-function render(){const q=$("search").value.toLowerCase();// search only what is visible in the current mode, so viewers can't find people by hidden contact data
-const vis=g=>(edit?g.name+" "+g.contact:g.name)+" "+g.notes;const rows=data.map((g,i)=>({g,i})).filter(({g})=>!q||vis(g).toLowerCase().includes(q));$("list").innerHTML=rows.map(({g,i})=>rowHtml(g,i)).join("")||`<p class="count">No guests${q?" match":" yet"}.</p>`;$("count").textContent=rows.length+" of "+data.length+" guests · "+data.filter(g=>g.status==="confirmed").length+" confirmed";document.body.classList.toggle("editing",edit);}
-function openRow(i){cur=i;const g=data[i]||{name:"",contact:"",status:"pending",notes:""};$("fName").value=g.name;$("fContact").value=g.contact;$("fStatus").value=g.status;$("fNotes").value=g.notes;$("dlg").showModal();}
+function csv(){const q=a=>a.map(x=>{const v=String(x);return JSON.stringify(/^[=+\-\@\t\r]/.test(v)?"'"+v:v)}).join(",");  /* leading =+-@ renders as an Excel formula; ' prefix stops that */dl("guests.csv","text/csv;charset=utf-8","\ufeff"+[q(Hdr()),...data.map(g=>q(cols(g)))].join("\r\n"));}
+function txt(){dl("guests.txt","text/plain",[Hdr(),...data.map(g=>cols(g))].map(a=>a.join("\t")).join("\r\n"));}
+function md(){const p=a=>"| "+a.map(x=>String(x).replace(/\|/g,"\\|")).join(" | ")+" |";dl("guests.md","text/markdown",[p(Hdr()),"|---".repeat(3)+"|",...data.map(g=>p(cols(g)))].join("\r\n"));}
+// ---- admin UI (render() is the single truth: body.admin class flips toolbar/list/count on, landing blocks off)
+function rowHtml(g,i){return `<div class="entry"><h2>${esc(g.name)}</h2><span class="badge ${esc(g.status)}">${esc(g.status)}</span><p class="info">${esc(g.notes)||"\u2014"}</p><span class="actions"><button onclick="openRow(${i})">Edit</button><button onclick="delRow(${i})">&#10005;</button></span></div>`;}
+function render(){document.body.classList.toggle("admin",edit);$("syncNote").style.display=edit?"":"none";$("countWrap").style.display=edit?"block":"none";if(!edit)return;const q=$("search")?$("search").value.toLowerCase():"";
+const rows=data.map((g,i)=>({g,i})).filter(({g})=>!q||(g.name+" "+g.notes).toLowerCase().includes(q));$("list").innerHTML=rows.map(({g,i})=>rowHtml(g,i)).join("")||`<p class="count">No guests${q?" match":" yet"}.</p>`;$("count").textContent=rows.length+" of "+data.length+" guests \u00b7 "+data.filter(g=>g.status==="confirmed").length+" confirmed";}
+function enterAdmin(){gateClose();document.body.classList.add("admin");pullRemote();render();resetIdle();$("syncNote").textContent="Organiser mode \u2014 loading\u2026";}
+function openRow(i){cur=i;const g=data[i]||{name:"",status:"pending",notes:""};$("fName").value=g.name;$("fStatus").value=g.status;$("fNotes").value=g.notes;$("dlg").showModal();}
 function addRow(){openRow(-1);}
-function saveRow(e){if($("dlg").submitter&&$("dlg").submitter.value==="cancel")return;const g={name:$("fName").value.trim(),contact:$("fContact").value.trim(),status:$("fStatus").value,notes:$("fNotes").value.trim()};if(!g.name)return;cur<0?data.push(g):data[cur]=g;render();scheduleSave();}
-function delRow(i){if(confirm("Delete "+data[i].name+"?")){data.splice(i,1);render();scheduleSave();}}
-addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue="";}}); // guard: unsaved edits die with the tab
+function saveRow(e){if($("dlg").submitter&&$("dlg").submitter.value==="cancel")return;const g={name:$("fName").value.trim(),status:$("fStatus").value,notes:$("fNotes").value.trim()};if(!g.name)return;last=JSON.parse(JSON.stringify(data));cur<0?data.push(g):data[cur]=g;$("undoBtn").style.display="inline-block";render();scheduleSave();}
+function delRow(i){last=JSON.parse(JSON.stringify(data));data.splice(i,1);$("undoBtn").style.display="inline-block";render();scheduleSave();}
+function undo(){if(!last)return;data=last;last=null;$("undoBtn").style.display="none";render();scheduleSave();toast("Undone");}
+addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue="";}}); // guard: unsaved organiser edits die with the tab
 function toast(m){$("toast").textContent=m;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",3000);}
-addEventListener("DOMContentLoaded",async()=>{await pullRemote();render();if(edit)resetIdle();setInterval(pullRemote,45000);}); // viewers get other people's edits ~45 s later without reload
+// ---- boot state machine: locked (gate) -> landing (guest join, no list/search/downloads) -> admin (full list + search + downloads). One .landing-only container holds join+login so boot() can flip it with display.
+function boot(){const gated=sessionStorage.getItem("gl_gate")==="1";edit=sessionStorage.getItem("gl_edit")==="1"&&gated; // hard rule: edit implies gate
+document.body.classList.remove("admin");$("gate").style.display=gated?"none":"flex";$("gateErr").textContent="";$("joinErr").textContent="";
+if(!gated)return;gateClose();
+document.querySelectorAll(".landing-only").forEach(el=>el.style.display="");  // restore CSS defaults (renderJoinDone rewrites joinPanel, so reset it below when not joined)
+$("loginPanel").style.display="none"; // after the restore loop: login panel opens only via showLogin()
+const joined=sessionStorage.getItem("gl_joined");
+if(joined&&!edit){renderJoinDone(joined);}else{$("joinPanel").innerHTML=JOIN_FORM_HTML;$("joinPanel").style.display="block";}
+if(edit)enterAdmin();}
+const JOIN_FORM_HTML='<form onsubmit="return join(event)"><label>Name</label><input id="joinName" required maxlength="80" placeholder="Your name"><label>Notes (optional)</label><textarea id="joinNotes" rows="3" maxlength="500" placeholder="Anything the organisers should know"></textarea><button id="joinBtn">Count me in</button><p class="errline" id="joinErr"></p></form><p class="sub" style="margin-top:.3rem">You\'ll be added as <span style="color:var(--acc)">pending</span> — the organiser confirms.</p>';
+addEventListener("DOMContentLoaded",()=>{boot();setInterval(pullRemote,45000);}); // organisers see each other's edits ~45 s later without reload
 </script>
 </body>
 </html>
