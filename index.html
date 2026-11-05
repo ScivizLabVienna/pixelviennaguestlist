@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="deploy" content="fmtfix1">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GUEST LIST</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <style>
+*,*::before,*::after{box-sizing:border-box}
 /* Brutalist Graphic Design × PIXELvienna schedule layout: Space Mono uppercase display, Space Grotesk bold entries, status chips (#e8585a on black), raw blocks, no radius. */
 :root{color-scheme:dark;--bg:#0c0c0d;--cream:#f2efe6;--ink:#000;--acc:#e8585a;--grey:#3a3a3d}
 body{margin:0;background:var(--bg);color:var(--cream);font-family:"Space Grotesk",system-ui,sans-serif;font-weight:700}
@@ -20,6 +22,9 @@ main{max-width:1000px;width:100%;margin:0 auto;padding:1.25rem;display:flex;flex
 #list{overflow-y:auto;flex:1;scrollbar-color:var(--acc) var(--bg)}
 .toolbar{display:none;gap:.6rem;flex-wrap:wrap;margin-bottom:1.5rem}
 body.admin .toolbar{display:flex}
+#search{flex:1;min-width:200px}
+.orgbtns{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.panel input:not([type="checkbox"]):not([type="radio"]),.panel select,.panel textarea,dialog input,dialog select,dialog textarea{width:100%}
 .landing-only{display:block}body.admin .landing-only{display:none}
 input,button,select,textarea{font-family:"Space Mono",monospace;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:.8rem;background:var(--ink);color:var(--cream);border:2px solid var(--cream);border-radius:0;padding:.6rem .8rem}
 input{border-color:var(--grey)}input:focus{outline:none;border-color:var(--acc)}
@@ -36,7 +41,7 @@ button{cursor:pointer}button:hover{background:var(--acc);color:var(--ink);border
 .count{font-family:"Space Mono",monospace;font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;color:#a9a9ad;margin-bottom:.5rem}
 dialog{background:var(--bg);color:var(--cream);border:4px solid var(--cream);border-radius:0;width:min(420px,92%)}
 dialog::backdrop{background:#000c}dialog form{display:grid;gap:.6rem;padding:.5rem}
-dialog label,.panel label{font-family:"Space Mono",monospace;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:#a9a9ad;display:block;margin-bottom:-.4rem}
+dialog label,.panel label{font-family:"Space Mono",monospace;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:#a9a9ad;display:block;margin-bottom:.35rem}
 /* full-screen event gate + guest join card */
 #gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:1.25rem;text-align:center}
 #gate h1{font-size:clamp(2rem,8vw,4rem)}
@@ -76,13 +81,13 @@ footer{border-top:6px solid var(--cream);margin-top:2rem;padding:1rem 1.25rem;fo
 </form>
 <p class="sub" style="margin-top:.3rem">You'll be added as <span style="color:var(--acc)">pending</span> — the organiser confirms.</p>
 </div>
-<div class="landing-only" style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.5rem">
+<div class="landing-only orgbtns">
 <button onclick="showLogin()">Organiser log-in</button>
 </div>
 <div class="panel landing-only" id="loginPanel" style="display:none">
 <form onsubmit="return orgLogin(event)">
 <label>Organiser password</label><input id="orgPw" type="password" autocomplete="current-password">
-<div style="display:flex;gap:.5rem"><button>Log in</button><button type="button" value="cancel" onclick="$('loginPanel').style.display='none'">Cancel</button></div>
+<div style="display:grid;gap:.5rem;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))"><button>Log in</button><button type="button" value="cancel" onclick="$('loginPanel').style.display='none'">Cancel</button></div>
 <p class="errline" id="orgErr"></p>
 </form>
 </div>
@@ -108,8 +113,8 @@ footer{border-top:6px solid var(--cream);margin-top:2rem;padding:1rem 1.25rem;fo
 <div id="toast"></div>
 <footer>Pixel · Vienna — Guest List</footer>
 <script>
-// v2 access model: event password ("pixelpixelpixel") gates entry + allows self-add; organiser password unlocks view/edit/download of the whole list.
-const GATE_HASH="b782a8247486a05c77f589f5d219281be10523bfa79fd64bbb73a8bc5de71705"; // sha256("pixelpixelpixel") — the event password, public by design (it also rides on QR flyers)
+// v2 access model: event password gates entry + allows self-add; organiser password unlocks view/edit/download of the whole list.
+const GATE_HASH="b782a8247486a05c77f589f5d219281be10523bfa79fd64bbb73a8bc5de71705"; // sha256 of the event password — public by design (it also rides on QR flyers)
 const PW_HASH="930552873fbe0e5b9066fe64c08c29b7fd2b80430260120fc98da0843e3ba02c";   // organiser password hash
 const DATA_API="https://scivizlabvienna-guestlist-data.hf.space/list"; const ADD_API="https://scivizlabvienna-guestlist-data.hf.space/add"; // free tier sleeps when idle: first request can take ~10 s, saves retry automatically
 const IDLE_MS=10*60*1000; // organiser mode auto-logs out after 10 min of no activity (returns to the guest landing; site stays entered)
