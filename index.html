@@ -92,12 +92,12 @@ let idleT;function resetIdle(){clearTimeout(idleT);if(edit)idleT=setTimeout(logo
 let st;function scheduleSave(){clearTimeout(st);dirty=true;st=setTimeout(saveNow,1200);}
 async function saveNow(){try{const r=await fetch(DATA_API,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({key:PW_HASH,list:data})});if(!r.ok)throw 0;dirty=false;$("syncNote").textContent="Live sync — saved "+new Date().toLocaleTimeString();}catch(e){$("syncNote").textContent="⚠ not saved yet — retrying";st=setTimeout(saveNow,20000);}}
 async function pullRemote(){if(dirty||document.querySelector("dialog[open]"))return; // don't yank the list mid-save or mid-edit-form
-try{const r=await fetch(DATA_API,{cache:"no-store"});if(!r.ok)throw 0;data=await r.json();render();}catch(e){$("syncNote").textContent="Offline copy — server unreachable";}}
-// ---- downloads: open to everyone; shortcut: viewer exports carry no contact column (mirrors on-screen rule). note: GET /list itself is unauthenticated — anyone who curls it sees contacts; upgrade path = same X-Guest-Key gate on GET if that ever matters.
+try{const r=await fetch(DATA_API+"?key="+PW_HASH,{cache:"no-store"});if(!r.ok)throw 0;data=await r.json();render();}catch(e){$("syncNote").textContent="Offline copy — server unreachable";}}
+// ---- downloads: open to everyone; viewer exports carry no contact column (mirrors on-screen rule). server GET returns contacts only for ?key= holders.
 function cols(v){return edit?[v.name,v.contact,v.status,v.notes]:[v.name,v.status,v.notes];}
 function Hdr(){return edit?["Name","Contact","Status","Notes"]:["Name","Status","Notes"];}
 function dl(name,mime,text){const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob([text],{type:mime})),download:name});a.click();toast("Downloaded "+name);}
-function csv(){const q=a=>a.map(x=>JSON.stringify(String(x))).join(",");dl("guests.csv","text/csv;charset=utf-8","\ufeff"+[q(Hdr()),...data.map(v=>q(cols(v)))].join("\r\n"));}
+function csv(){const q=a=>a.map(x=>{const v=String(x);return JSON.stringify(/^[=+\-@\t\r]/.test(v)?"'"+v:v)}).join(",");  /* leading =+-@ renders as an Excel formula; ' prefix stops that */dl("guests.csv","text/csv;charset=utf-8","\ufeff"+[q(Hdr()),...data.map(v=>q(cols(v)))].join("\r\n"));}
 function txt(){dl("guests.txt","text/plain",[Hdr(),...data.map(v=>cols(v))].map(a=>a.join("\t")).join("\r\n"));}
 function md(){const p=a=>"| "+a.map(x=>String(x).replace(/\|/g,"\\|")).join(" | ")+" |";dl("guests.md","text/markdown",[p(Hdr()),"|---".repeat(Hdr().length)+"|",...data.map(v=>p(cols(v)))].join("\r\n"));}
 // ---- UI
